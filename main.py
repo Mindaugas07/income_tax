@@ -16,6 +16,8 @@ from typing import Dict, List, Union
 from faker import Faker
 from random import random, randint
 from datetime import date
+from mongo import MongoDB
+import click, os
 import random
 import datetime
 
@@ -42,25 +44,76 @@ def create_a_person():
     return name, surname, date_of_birth, age, salary_before_tax
 
 
+def people_from_age_bracket(
+    min_age: int, max_age: int, number_of_people: int, data_base
+) -> List:
+    query = {"age": {"$gt": min_age, "$lt": max_age}}
+    person_details = data_base.find_documents(
+        query,
+        {},
+        # query, {"_id": 0, "date of birth": 0, "salary before taxes": 0}
+    )[:number_of_people]
+    return person_details
+
+
 if __name__ == "__main__":
-    mongodb_host = "localhost"
-    mongodb_port = 27017
-    database_name = "income_tax"
-    collection_name = "people"
+    tax_db = MongoDB(
+        host="localhost",
+        port=27017,
+        db_name="income_tax",
+        collection_name="people",
+    )
 
-    db = connect_to_mongodb(mongodb_host, mongodb_port, database_name)
+    os.system("cls")
 
-    collection = db[collection_name]
-    fake = Faker()
-    for _ in range(500):
-        name, surname, date_of_birth, age, salary_before_tax = create_a_person()
-        document = {
-            "name": name,
-            "surname": surname,
-            "date of birth": str(date_of_birth),
-            "age": age,
-            "salary before taxes": salary_before_tax,
-        }
-        inserted_id = insert_document(collection, document)
-        print(f"Inserted document with ID: {inserted_id}")
-        print(f"This person was inserted into the database: {document}")
+    def show_app_menu() -> str:
+
+        return input(
+            f"""
+If you want view ten people information press {"--y--":^35}
+
+Press --9-- to quit our app                          
+"""
+        )
+
+    os.system("cls")
+    while True:
+
+        try:
+            user_option = show_app_menu()
+        except:
+            print("Wrong input. Please enter a number from the list...")
+            break
+
+        if user_option == "y":
+            os.system("cls")
+            try:
+                user_option_min_age = int(input("Enter minimum age: "))
+                user_option_max_age = int(input("Enter max age: "))
+                os.system("cls")
+                group_of_people = people_from_age_bracket(
+                    user_option_min_age, user_option_max_age, 10, tax_db
+                )
+
+                query = {}
+                print("People:")
+                for index, person in enumerate(group_of_people):
+                    index += 1
+                    print(
+                        f"{index}.-- {person['name']} {person['surname']} {person['age']} years old"
+                    )
+                person_id = int(input("Person id.. "))
+
+                try:
+                    selected_person = group_of_people[int(person_id) - 1]
+                    print(
+                        f" Salary after taxes: {selected_person['salary before taxes'] * 0.8} eur."
+                    )
+
+                except:
+                    print("Wrong input. Please enter a integers...")
+                    break
+
+            except:
+                print("Wrong input. Please enter a integers...")
+                break
