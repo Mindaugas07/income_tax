@@ -17,9 +17,10 @@ from faker import Faker
 from random import random, randint
 from datetime import date
 from mongo import MongoDB
-import click, os
+import click
 import random
 import datetime
+import os
 
 
 def connect_to_mongodb(host: str, port: int, db_name: str) -> Database:
@@ -95,7 +96,6 @@ Press --9-- to quit our app
                     user_option_min_age, user_option_max_age, 10, tax_db
                 )
 
-                query = {}
                 print("People:")
                 for index, person in enumerate(group_of_people):
                     index += 1
@@ -106,14 +106,43 @@ Press --9-- to quit our app
 
                 try:
                     selected_person = group_of_people[int(person_id) - 1]
-                    print(
-                        f" Salary after taxes: {selected_person['salary before taxes'] * 0.8} eur."
-                    )
 
+                    if len(selected_person) > 6:
+                        print(
+                            f"{selected_person['name']} {selected_person['surname']} has to pay {selected_person['gpm tax']} EUR GPM tax, {selected_person['health tax']} EUR health tax. Gross salary after taxes will be {selected_person['final salary']} EUR"
+                        )
+                    else:
+                        gpm_deduction = round(
+                            selected_person["salary before taxes"] * 0.1, 2
+                        )
+                        salary_after_gpm_deduction = round(
+                            selected_person["salary before taxes"] * 0.9, 2
+                        )
+                        gpm_taxes = round(salary_after_gpm_deduction * 0.2, 2)
+                        health_taxes = round(salary_after_gpm_deduction * 0.15, 2)
+                        final_salary = round(salary_after_gpm_deduction * 0.65, 2)
+                        query = {"_id": selected_person["_id"]}
+                        document_update = {
+                            "gpm deduction": gpm_deduction,
+                            "salary after gpm deduction": salary_after_gpm_deduction,
+                            "gpm tax": gpm_taxes,
+                            "health tax": health_taxes,
+                            "final salary": final_salary,
+                        }
+                        print("updatinam dokument")
+                        tax_db.update_one_document(query, document_update)
+
+                        print(tax_db.find_documents(query, {}))
                 except:
+                    # os.system("cls")
                     print("Wrong input. Please enter a integers...")
                     break
 
             except:
+                # os.system("cls")
                 print("Wrong input. Please enter a integers...")
                 break
+        else:
+            os.system("cls")
+            print("You exited the program, Bye!")
+            break
